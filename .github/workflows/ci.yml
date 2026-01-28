@@ -1,0 +1,31 @@
+name: argus_bringup package CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-jammy-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and test argus_bringup
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          package-name: argus_bringup
+          target-ros2-distro: humble
+          colcon-defaults: |
+            {
+              "build": {
+                "symlink-install": true
+              }
+            }
+
