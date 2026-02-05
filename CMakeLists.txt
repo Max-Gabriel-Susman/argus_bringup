@@ -17,7 +17,6 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# If you have these folders, this installs them (safe even if you add later)
 install(DIRECTORY
   launch
   config
