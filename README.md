@@ -20,7 +20,7 @@ firmware and platform get *built*.
 | `console` | `scripts/console.sh` | the board's UART, streamed into the launch log; released on Ctrl-C |
 | `dataset_relay` | `argus_sim dataset_relay_node` | serves the replay `.bin` on UDP :5010 |
 | `neural_udp_receiver` | `argus_sensors` | UDP :5005 -> `/argus/neural_interface_bridge/neural_data` |
-| `neural_telemetry_receiver` | `argus_sensors` | -> `/argus/sensors/neural_telemetry` |
+| `neural_telemetry_receiver` | `argus_sensors neural_telemetry_receiver_node` | -> `/argus/sensors/neural_telemetry` |
 | `argus_inference` | `argus_inference inference_node` | trains on the `.mat`, decodes, publishes `/cmd_vel` |
 | `program` | `argus_safety_controller/tools/program.sh` | XSDB: reset, bitstream, `ps7_init`, ELF, go -- 2 s after the relay is up |
 

@@ -102,7 +102,7 @@ def generate_launch_description():
 
     bridge = Node(
         package='argus_sensors',
-        executable='neural_telemetry_receiver',
+        executable='neural_telemetry_receiver_node',
         name='neural_telemetry_receiver',
         output='screen',
         parameters=[config],
