@@ -1,0 +1,27 @@
+# Node parameters for the Argus stack. Keys are node names; every node is
+# handed this whole file and takes its own section. dataset_path is not
+# here on purpose: it comes from the launch argument so the file stays
+# machine-independent.
+
+dataset_relay:
+  ros__parameters:
+    bind_addr: "0.0.0.0"
+    port: 5010
+    loop: true
+    status_period_s: 5.0
+
+neural_udp_receiver:
+  ros__parameters:
+    bind_port: 5005
+    output_topic: "/argus/neural_interface_bridge/neural_data"
+    poll_period_us: 1000
+
+neural_telemetry_receiver:
+  ros__parameters:
+    input_topic: "/argus/neural_interface_bridge/neural_data"
+    output_topic: "/argus/sensors/neural_telemetry"
+
+argus_inference:
+  ros__parameters:
+    input_topic: "/argus/sensors/neural_telemetry"
+    cmd_topic: "/cmd_vel"

@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>argus_bringup</name>
+  <version>0.1.0</version>
+  <description>
+    One command for the Argus stack: relay, receiver, telemetry bridge,
+    decoder, the board's serial console as a launch process, and optionally
+    programming the Arty Z7 the way Vitis's Run button does.
+  </description>
+  <maintainer email="Max-Gabriel-Susman@users.noreply.github.com">Max Gabriel Susman</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>argus_sim</exec_depend>
+  <exec_depend>argus_sensors</exec_depend>
+  <exec_depend>argus_inference</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
