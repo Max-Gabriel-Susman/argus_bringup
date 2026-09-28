@@ -63,6 +63,7 @@ Ctrl-C ends every process. The board keeps running; only the host stops.
 | --- | --- | --- |
 | `dataset` | `~/argus_data/indy_20161005_06_s120_10s.bin` | replay `.bin` for the relay |
 | `mat` | `~/argus_data/indy_20161005_06.mat` | training set for the decoder |
+| `model` | (empty) | saved decoder pipeline from `decode_test.py --save-model`; empty trains on the `.mat` |
 | `relay`, `receiver`, `decode`, `console` | `true` | run that part |
 | `console_dev` | `/dev/ttyUSB1` | board UART |
 | `program` | `false` | program the FPGA and run the ELF |

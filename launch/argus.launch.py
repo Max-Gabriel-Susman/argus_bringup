@@ -23,8 +23,8 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
-from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.conditions import IfCondition, UnlessCondition
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -38,6 +38,8 @@ def generate_launch_description():
 
     dataset = LaunchConfiguration('dataset')
     mat = LaunchConfiguration('mat')
+    model = LaunchConfiguration('model')
+    has_model = PythonExpression(["'", model, "' != ''"])
     console_dev = LaunchConfiguration('console_dev')
     firmware = LaunchConfiguration('firmware')
 
@@ -50,6 +52,9 @@ def generate_launch_description():
             'mat',
             default_value=os.path.join(HOME, 'argus_data', 'indy_20161005_06.mat'),
             description='Training set for the decoder (ARGUS_DATASET_PATH)'),
+        DeclareLaunchArgument(
+            'model', default_value='',
+            description='Saved decoder pipeline (decode_test.py --save-model); empty = train on the .mat at startup'),
         DeclareLaunchArgument('relay', default_value='true',
                               description='Run the dataset relay'),
         DeclareLaunchArgument('receiver', default_value='true',
@@ -109,6 +114,10 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('receiver')),
     )
 
+    # Two declarations of one node: with a saved model the decoder loads it
+    # (ARGUS_MODEL_PATH); without one it trains on the .mat at startup. An
+    # empty ARGUS_MODEL_PATH would read as "set", so it is only exported
+    # when model:= is non-empty.
     decoder = Node(
         package='argus_inference',
         executable='inference_node',
@@ -116,7 +125,16 @@ def generate_launch_description():
         output='screen',
         parameters=[config],
         additional_env={'ARGUS_DATASET_PATH': mat},
-        condition=IfCondition(LaunchConfiguration('decode')),
+        condition=IfCondition(PythonExpression([LaunchConfiguration('decode'), " and not ", has_model])),
+    )
+    decoder_with_model = Node(
+        package='argus_inference',
+        executable='inference_node',
+        name='argus_inference',
+        output='screen',
+        parameters=[config],
+        additional_env={'ARGUS_DATASET_PATH': mat, 'ARGUS_MODEL_PATH': model},
+        condition=IfCondition(PythonExpression([LaunchConfiguration('decode'), " and ", has_model])),
     )
 
     # After the relay is listening: the firmware's first fetch goes out
@@ -139,5 +157,6 @@ def generate_launch_description():
         receiver,
         bridge,
         decoder,
+        decoder_with_model,
         program,
     ])

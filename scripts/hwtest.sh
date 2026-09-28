@@ -48,7 +48,12 @@ if [ -n "$JUDGE" ]; then
   [ -f "$LOG" ] || fail "no such log $LOG"
 else
 
-# --- preconditions: the two that have cost the most time ------------------
+# --- preconditions: the ones that have cost the most time ------------------
+stale=$(pgrep -af "dataset_relay_node|neural_udp_receiver|neural_telemetry_receiver_node|inference_node|ros2 launch" 2>/dev/null | grep -v hwtest || true)
+if [ -n "$stale" ]; then
+  echo "$stale" | cut -c1-120 | sed 's/^/hwtest:   stale: /'
+  fail "ROS processes from a previous run are alive (they share the UDP ports); pkill -INT -f 'dataset_relay_node|neural_udp_receiver|neural_telemetry_receiver_node|inference_node'"
+fi
 route=$(ip route get 192.168.1.10 2>/dev/null | head -1)
 [[ "$route" == *"nordlynx"* ]] && fail "route to the board goes via the VPN; disconnect it"
 [ -c /dev/ttyUSB1 ] || fail "no /dev/ttyUSB1 -- board USB not connected or powered"
@@ -89,16 +94,24 @@ fi
 fi  # not --judge
 
 # --- verdict --------------------------------------------------------------
-con() { grep -a '^\[console-' "$LOG" | sed 's/^\[console-[0-9]*\] //'; }
+# Only what happened after this run's own banner counts: the board keeps
+# printing its previous firmware's lines until program-7 reprograms it, and
+# the receiver keeps counting that firmware's frames. Everything before the
+# last "acq id=" is another run's evidence.
+banner_ln=$(grep -an 'acq id=' "$LOG" | tail -1 | cut -d: -f1 || true)
+if [ -n "$banner_ln" ]; then post() { tail -n +"$banner_ln" "$LOG"; }; else post() { cat "$LOG"; }; fi
+con() { post | grep -a '^\[console-' | sed 's/^\[console-[0-9]*\] //'; }
 id_line=$(con | grep -m1 'acq id=' || true)
 tx_first=$(con | grep -m1 '^tx ' || true)
 tx_last=$(con | grep '^tx ' | tail -1 || true)
-frames=$(grep -a -m1 'frames ok=' "$LOG" || true)
+frames_first=$(post | grep -a -m1 'frames ok=' || true)
+frames=$(post | grep -a 'frames ok=' | tail -1 || true)
 hold=$(con | grep -m1 'hold never took effect' || true)
 stream=$(con | grep '^stream:' | tail -2 || true)
 feat=$(con | grep '^feat:' | tail -1 || true)
-intent=$(grep -a 'intent=' "$LOG" | tail -1 | sed 's/.*\[argus_inference\]: //' || true)
+intent=$(post | grep -a 'intent=' | tail -1 | sed 's/.*\[argus_inference\]: //' || true)
 program_err=$(grep -a -m1 -E 'no JTAG targets|program.tcl: missing|Failed to download' "$LOG" || true)
+fnum() { echo "$1" | grep -o 'frames ok=[0-9]*' | grep -o '[0-9]*$'; }
 
 echo "hwtest: ---- verdict ($LOG) ----"
 [ -n "$id_line" ]   && echo "hwtest:   $id_line"   || echo "hwtest:   (no acq id line)"
@@ -116,7 +129,12 @@ status=0
 [[ "$id_line" == *EXPECTED* ]]                 && { echo "hwtest:   fabric/firmware revision mismatch"; status=1; }
 [ -n "$hold" ]                                 && { echo "hwtest:   $hold"; status=1; }
 [ -z "$tx_last" ] || [ "$tx_first" = "$tx_last" ] && { echo "hwtest:   no advancing tx lines"; status=1; }
-[ -z "$frames" ]                               && { echo "hwtest:   host received no frames"; status=1; }
+frames_n=$(post | grep -ac 'frames ok=' || true)
+if [ "${frames_n:-0}" -lt 2 ]; then
+  echo "hwtest:   fewer than two host stats lines after the banner (run too short?)"; status=1
+elif [ "$(fnum "$frames")" -le "$(fnum "$frames_first")" ]; then
+  echo "hwtest:   host frame count did not climb after the banner ($(fnum "$frames_first") -> $(fnum "$frames"))"; status=1
+fi
 
 if [ "$status" -eq 0 ]; then echo "hwtest: PASS"; else echo "hwtest: FAIL"; fi
 exit "$status"
