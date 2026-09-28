@@ -68,6 +68,23 @@ ros2 topic hz /cmd_vel
 ros2 topic echo /argus/sensors/neural_telemetry --once
 ```
 
+## Hardware test in one command
+
+```bash
+scripts/hwtest.sh                        # program, run 60 s, judge
+scripts/hwtest.sh --firmware             # build the firmware first (~2 min)
+scripts/hwtest.sh --fabric --firmware    # build the gateware too (~3 min more)
+scripts/hwtest.sh --judge ~/Documents/hwtest-<stamp>.log
+```
+
+Refuses to start if the VPN owns the route or the board is absent; builds
+refuse on their own failures (a timing miss, a compile error); the run is
+the launch above under a timeout with its log kept; the verdict is the
+lines that matter -- `acq id`, first and last `tx`, `frames ok=`, the last
+two `stream:`, the last `feat:`, the last `intent=` -- and `PASS`/`FAIL`
+with the exit status to match. This is the command an unattended loop is
+allowed to use, and the block that goes in a hardware-affecting commit.
+
 ## If
 
 - **`console: /dev/ttyUSB1 is not present`** -- `ls /dev/ttyUSB*`; pass `console_dev:=`.

@@ -9,6 +9,7 @@ install(DIRECTORY launch config
 install(PROGRAMS
   scripts/console.sh
   scripts/preflight.sh
+  scripts/hwtest.sh
   DESTINATION share/${PROJECT_NAME}/scripts)
 
 ament_package()
