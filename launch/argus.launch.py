@@ -23,7 +23,7 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -39,7 +39,11 @@ def generate_launch_description():
     dataset = LaunchConfiguration('dataset')
     mat = LaunchConfiguration('mat')
     model = LaunchConfiguration('model')
-    has_model = PythonExpression(["'", model, "' != ''"])
+    # Launch arguments substitute as raw strings, so a boolean must be
+    # compared as text: "'true'.lower() in ('true', '1')" is valid Python,
+    # a bare "true" is a NameError.
+    decode_on = ["'", LaunchConfiguration('decode'), "'.lower() in ('true', '1')"]
+    has_model = ["'", model, "' != ''"]
     console_dev = LaunchConfiguration('console_dev')
     firmware = LaunchConfiguration('firmware')
 
@@ -125,7 +129,7 @@ def generate_launch_description():
         output='screen',
         parameters=[config],
         additional_env={'ARGUS_DATASET_PATH': mat},
-        condition=IfCondition(PythonExpression([LaunchConfiguration('decode'), " and not ", has_model])),
+        condition=IfCondition(PythonExpression(decode_on + [" and not (", *has_model, ")"])),
     )
     decoder_with_model = Node(
         package='argus_inference',
@@ -134,7 +138,7 @@ def generate_launch_description():
         output='screen',
         parameters=[config],
         additional_env={'ARGUS_DATASET_PATH': mat, 'ARGUS_MODEL_PATH': model},
-        condition=IfCondition(PythonExpression([LaunchConfiguration('decode'), " and ", has_model])),
+        condition=IfCondition(PythonExpression(decode_on + [" and (", *has_model, ")"])),
     )
 
     # After the relay is listening: the firmware's first fetch goes out

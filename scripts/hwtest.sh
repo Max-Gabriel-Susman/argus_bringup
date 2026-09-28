@@ -49,7 +49,9 @@ if [ -n "$JUDGE" ]; then
 else
 
 # --- preconditions: the ones that have cost the most time ------------------
-stale=$(pgrep -af "dataset_relay_node|neural_udp_receiver|neural_telemetry_receiver_node|inference_node|ros2 launch" 2>/dev/null | grep -v hwtest || true)
+# The autopilot's own claude process mentions these names on its command
+# line (the allowed-tools list); it is not a ROS process.
+stale=$(pgrep -af "dataset_relay_node|neural_udp_receiver|neural_telemetry_receiver_node|inference_node|ros2 launch" 2>/dev/null | grep -vE "hwtest|claude -p|autopilot" || true)
 if [ -n "$stale" ]; then
   echo "$stale" | cut -c1-120 | sed 's/^/hwtest:   stale: /'
   fail "ROS processes from a previous run are alive (they share the UDP ports); pkill -INT -f 'dataset_relay_node|neural_udp_receiver|neural_telemetry_receiver_node|inference_node'"
