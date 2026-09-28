@@ -1,4 +1,35 @@
-# argus_bringup
+# Argus Cybernetics
+
+Argus Cybernetics is a neural-acquisition and decoding pipeline built end to
+end on real silicon: recorded macaque motor cortex is replayed into simulated
+Intan RHD2132 amplifiers in the fabric of a Zynq-7000 (Arty Z7), a VHDL codec
+in the same fabric extracts threshold crossings and spike-band power per
+channel per 50 ms bin, the Cortex-A9 firmware ships them over UDP, and a
+ROS 2 graph receives them, decodes reach intent with an LDA classifier and
+drives `/cmd_vel`. The broadband comes from session `indy_20161005_06`
+(O'Doherty, Cardoso, Makin & Sabes, CC-BY-4.0); where every file comes from is
+in [argus_data](https://github.com/Max-Gabriel-Susman/argus_data). The loop
+runs on hardware as of fabric revision ACQ3; the replay path that refills the
+fabric's BRAM from the host is still well short of real time and is the open
+item.
+
+**Data path.**
+`~/argus_data/*.bin` → `dataset_relay_node` (UDP :5010) → PS refills replay
+BRAM → 96 simulated RHD2132 chips → `argus_feature` (250 Hz high-pass,
+3.5σ crossings, spike-band power, 50 ms bins) → AXI feature bank at `0x400`
+→ firmware → UDP :5005, wire frame v3 → `neural_udp_receiver` →
+`/argus/neural_interface_bridge/neural_data` → `neural_telemetry_receiver_node`
+→ `/argus/sensors/neural_telemetry` → `inference_node` (StandardScaler → LDA)
+→ `/cmd_vel`.
+
+| Result | Value | Evidence |
+| --- | --- | --- |
+| Codec vs fixed-point model | bit-exact, 5760 (bin, channel) pairs | `argus-neural-codec` `sim/tb_argus_feature.vhd` against `sim/data/` |
+| Decode, counts + power at 3.5σ | 53.5 % vs 49.9 % for the lab's sorted units (5-fold CV, 4 classes) | `argus_sim/tools/decode_test.py` |
+| Timing closure | post-route WNS 0.924 ns at 125 MHz | `argus-neural-codec/tools/build_bitstream.tcl` |
+| End to end | 20.007 Hz on `/cmd_vel` | `ros2 topic hz /cmd_vel` on the running stack |
+
+## argus_bringup
 
 One command for the Argus stack.
 

@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    container: ros:humble
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/argus_bringup
+
+      - name: colcon build
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon build --packages-select argus_bringup
+
+      - name: launch files compile
+        working-directory: src/argus_bringup
+        run: python3 -m py_compile launch/*.py
+
+      - name: yamllint
+        working-directory: src/argus_bringup
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq yamllint
+          yamllint config/
