@@ -9,7 +9,7 @@
     programming the Arty Z7 the way Vitis's Run button does.
   </description>
   <maintainer email="Max-Gabriel-Susman@users.noreply.github.com">Max Gabriel Susman</maintainer>
-  <license>MIT</license>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
