@@ -8,7 +8,7 @@ bit-exact against its Python model on silicon, and the whole stack comes up
 with one command and is tested on hardware with one command.
 
 **Demo — the live system, six minutes, unedited:**
-[asciinema.org/a/AVy0s4vX4Cr3eyol](https://asciinema.org/a/AVy0s4vX4Cr3eyol)
+[asciinema.org/a/1266932](https://asciinema.org/a/1266932)
 (programming the board, the boot banner, the decoder loading the validated
 model, the stream at real time with zero underruns, decoded intents at 20 Hz).
 
