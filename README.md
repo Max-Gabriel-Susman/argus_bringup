@@ -9,9 +9,8 @@ ROS 2 graph receives them, decodes reach intent with an LDA classifier and
 drives `/cmd_vel`. The broadband comes from session `indy_20161005_06`
 (O'Doherty, Cardoso, Makin & Sabes, CC-BY-4.0); where every file comes from is
 in [argus_data](https://github.com/Max-Gabriel-Susman/argus_data). The loop
-runs on hardware as of fabric revision ACQ3; the replay path that refills the
-fabric's BRAM from the host is still well short of real time and is the open
-item.
+runs on hardware as of fabric revision ACQ3, with the replay path that
+refills the fabric's BRAM from the host at real time.
 
 **Data path.**
 `~/argus_data/*.bin` → `dataset_relay_node` (UDP :5010) → PS refills replay
@@ -28,6 +27,8 @@ BRAM → 96 simulated RHD2132 chips → `argus_feature` (250 Hz high-pass,
 | Decode, counts + power at 3.5σ | 53.5 % vs 49.9 % for the lab's sorted units (5-fold CV, 4 classes) | `argus_sim/tools/decode_test.py` |
 | Timing closure | post-route WNS 0.924 ns at 125 MHz | `argus-neural-codec/tools/build_bitstream.tcl` |
 | End to end | 20.007 Hz on `/cmd_vel` | `ros2 topic hz /cmd_vel` on the running stack |
+| Replay throughput | real time: 203 halves/s (of 204), 2.4 ms fetch per 4.9 ms half, zero loss (rtx/to/rej 0, underruns 0 over 90 s) | `stream:` lines in `scripts/hwtest.sh` logs |
+| Codec on silicon vs model | bit-exact, 1450 bins × 96 ch (first 100 bins: 100 %) | `argus_sim/tools/hw_bitexact.py` during `hwtest.sh --seconds 90` |
 
 ## argus_bringup
 
