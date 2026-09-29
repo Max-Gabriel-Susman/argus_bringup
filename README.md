@@ -49,6 +49,10 @@ only (44.0 %). Make the file once with `argus_sim/tools/decode_test.py ...
 is in the argus_sim README). On the board it loads and decodes the fabric's
 features: all four intents occur over a 90 s run (log `hwtest-20260928-195120.log`).
 
+Build it from `~/Documents/argus_ws` with `colcon build --packages-select
+argus_bringup`, and check it with `ros2 launch argus_bringup argus.launch.py
+--show-args`.
+
 It replaces the four terminals in `argus_safety_controller/RUNBOOK.md` and,
 with `program:=true`, the Vitis **Run** button. Vitis is still where the
 firmware and platform get *built*.
