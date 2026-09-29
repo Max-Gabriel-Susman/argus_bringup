@@ -28,6 +28,7 @@ BRAM → 96 simulated RHD2132 chips → `argus_feature` (250 Hz high-pass,
 | Timing closure | post-route WNS 0.924 ns at 125 MHz | `argus-neural-codec/tools/build_bitstream.tcl` |
 | End to end | 20.007 Hz on `/cmd_vel` | `ros2 topic hz /cmd_vel` on the running stack |
 | Replay throughput | real time: 203 halves/s (of 204), 2.4 ms fetch per 4.9 ms half, zero loss (rtx/to/rej 0, underruns 0 over 90 s) | `stream:` lines in `scripts/hwtest.sh` logs |
+| Validated decoder live | `model:=` loaded; intents 0/1/2/3 = 17/4/37/15 of 73 logged frames (every 20th) over 72.7 s, `crc=0` | `hwtest-20260928-195120.log` |
 | Codec on silicon vs model | bit-exact, 1450 bins × 96 ch (first 100 bins: 100 %) | `argus_sim/tools/hw_bitexact.py` during `hwtest.sh --seconds 90` |
 
 ## argus_bringup
@@ -36,9 +37,17 @@ One command for the Argus stack.
 
 ```bash
 rosenv
-ros2 launch argus_bringup argus.launch.py                # host side: relay, receiver, bridge, decoder, console
-ros2 launch argus_bringup argus.launch.py program:=true  # ... and program the board first
+ros2 launch argus_bringup argus.launch.py program:=true model:=$HOME/argus_model.pkl  # the demo
+ros2 launch argus_bringup argus.launch.py                # host side only: relay, receiver, bridge, decoder, console
 ```
+
+The demo passes `model:=` because that is the validated decoder: counts plus
+spike-band power at 3.5σ, 53.5 % in 5-fold CV, the one the results table
+reports. Without it the decoder trains on the `.mat` at startup on counts
+only (44.0 %). Make the file once with `argus_sim/tools/decode_test.py ...
+--mult 3.5 --features both --save-model ~/argus_model.pkl` (the full command
+is in the argus_sim README). On the board it loads and decodes the fabric's
+features: all four intents occur over a 90 s run (log `hwtest-20260928-195120.log`).
 
 It replaces the four terminals in `argus_safety_controller/RUNBOOK.md` and,
 with `program:=true`, the Vitis **Run** button. Vitis is still where the
@@ -53,7 +62,7 @@ firmware and platform get *built*.
 | `dataset_relay` | `argus_sim dataset_relay_node` | serves the replay `.bin` on UDP :5010 |
 | `neural_udp_receiver` | `argus_sensors` | UDP :5005 -> `/argus/neural_interface_bridge/neural_data` |
 | `neural_telemetry_receiver` | `argus_sensors neural_telemetry_receiver_node` | -> `/argus/sensors/neural_telemetry` |
-| `argus_inference` | `argus_inference inference_node` | trains on the `.mat`, decodes, publishes `/cmd_vel` |
+| `argus_inference` | `argus_inference inference_node` | loads `model:=` (or trains on the `.mat`), decodes, publishes `/cmd_vel` |
 | `program` | `argus_safety_controller/tools/program.sh` | XSDB: reset, bitstream, `ps7_init`, ELF, go -- 2 s after the relay is up |
 
 Ctrl-C ends every process. The board keeps running; only the host stops.
@@ -82,7 +91,7 @@ is deliberately a launch argument so the file has nothing machine-specific.
 [console-2] console: /dev/ttyUSB1 at 115200
 [dataset_relay-3] [INFO] [dataset_relay]: replay server on 0.0.0.0:5010 -- 300093 samples x 96 channels ...
 [neural_udp_receiver-4] [INFO] ... listening on UDP :5005 ...
-[argus_inference-6] [INFO] [argus_inference]: offline 4-way intent accuracy: 0.440
+[argus_inference-6] [INFO] [argus_inference]: model path: ARGUS_MODEL_PATH=... (saved model; features=['counts', 'power'] channels=96 mult=3.5 ...)
 [program-7] program: bit  19:30:12  .../argus_neural_codec.bit
 [program-7] ... fpga -file ... 100% ... Successfully downloaded ...
 [console-2] Initializing Argus Safety Controller...
