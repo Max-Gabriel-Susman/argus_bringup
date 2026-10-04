@@ -131,6 +131,69 @@ What healthy looks like:
 second (one per 20 frames decoded). Then, from any other terminal:
 `ros2 topic hz /cmd_vel`.
 
+## From a clean machine
+
+Tested on a fresh Ubuntu 22.04.5 (normal installation, third-party drivers
+accepted) on the same hardware as the development machine. Host side first;
+it needs nothing from Xilinx and takes about twenty minutes. Hardware second.
+
+**Host**
+
+1. ROS 2 Humble, from the official instructions —
+   <https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html> —
+   the `ros-humble-desktop` and `ros-dev-tools` packages.
+2. This repository, then its setup script:
+   ```bash
+   git clone https://github.com/Max-Gabriel-Susman/argus_bringup ~/Documents/argus_ws/src/argus_bringup
+   bash ~/Documents/argus_ws/src/argus_bringup/tools/setup-host.sh
+   ```
+   It installs the system and Python packages, clones the other seven
+   repositories into the layout the launch and harness assume
+   (`~/Documents/<repo>`, `~/Documents/argus_ws/src/<package>`; `ARGUS_HOME`
+   moves the root), fetches the training set into `~/argus_data/`, builds and
+   tests the workspace, runs the seven gateware benches, and checks that the
+   launch parses. Rerunnable; it ends by printing the hardware steps below.
+   (`tools/clean-room.sh` runs the same script in a fresh `ros:humble`
+   container, which is how it was checked.)
+
+**Hardware**
+
+3. Vivado ML Standard and Vitis 2026.1 — the no-cost edition covers the
+   XC7Z020 — from AMD's unified installer (an AMD account is required), to
+   `/tools/Xilinx/2026.1`. Another root works with `XILINX_VIVADO` and
+   `XILINX_VITIS` set to the `Vivado` and `Vitis` directories. Then the
+   cable drivers, once:
+   ```bash
+   sudo /tools/Xilinx/2026.1/Vivado/data/xicom/cable_drivers/lin64/install_script/install_drivers/install_drivers
+   ```
+4. Serial-port permission, once, then log out and in:
+   `sudo usermod -aG dialout,plugdev $USER`. With the board on USB,
+   `ls /dev/ttyUSB*` shows `ttyUSB0` (JTAG) and `ttyUSB1` (the console).
+5. Network: the board is `192.168.1.10`. Give the Ethernet adapter the
+   board is on a manual IPv4 address of `192.168.1.20`, netmask
+   `255.255.255.0`, no gateway (Settings → Network → the wired connection
+   → IPv4). `ip route get 192.168.1.10` must name that adapter, and no VPN
+   may own the `192.168.1.0/24` route.
+6. The replay data: the raw broadband NWB from Zenodo
+   [1419774](https://doi.org/10.5281/zenodo.1419774) (about 1 GB) into
+   `~/argus_data/`, then `bash ~/Documents/argus_data/scripts/derive.sh`
+   makes the two replay `.bin` files from it.
+7. The decoder model, from the 374 s replay file and the session's labels:
+   ```bash
+   python3 ~/Documents/argus_ws/src/argus_sim/tools/decode_test.py \
+       ~/argus_data/indy_20161005_06_s10_374s_24k.bin --save-model ~/argus_model.pkl
+   ```
+   It prints the cross-validated accuracy on the way (53.5 % counts+power).
+8. The gateware, then the firmware:
+   ```bash
+   cd ~/Documents/argus-neural-codec && vivado -mode batch -source tools/build_bitstream.tcl argus_neural_codec.xpr
+   ~/Documents/argus_safety_controller/tools/build_firmware.sh
+   ```
+   The first refuses to export unless timing closes; the second refuses
+   unless its outputs are fresh.
+9. The run, from *Running it* above, with `program:=true`; then
+   `scripts/hwtest.sh` for a judged run.
+
 ## Testing it on hardware
 
 ```bash
@@ -179,6 +242,18 @@ these repositories carries its verdict block in the message.
   rate, not an on-line accuracy figure.
 - There is no feedback path from `/cmd_vel` to the board; the loop is open
   by design at this version.
+
+## History
+
+Built in four days of sessions in September 2026. The last two days ran as
+an autonomous development loop (Claude Code, driven by a per-repo `CLAUDE.md`
+work list) under hardware-in-the-loop verification: the loop could build the
+gateware and firmware headlessly, program the board, run the stack, and read
+its own verdict, and it found and fixed the two lwIP configuration bugs that
+had capped replay throughput, took the receive path from 46 % of real time to
+100 %, and wrote and ran the on-silicon bit-exactness check. Tags across the
+repositories mark the milestones: `acq3-live` (the first live run),
+`replay-realtime`, `codec-bitexact`, `v1.0`.
 
 ## If
 

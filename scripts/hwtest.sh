@@ -66,7 +66,7 @@ fi
 # --- builds ---------------------------------------------------------------
 if [ "$FABRIC" -eq 1 ]; then
   echo "hwtest: building gateware"
-  ( cd "$CODEC" && set +u && . /tools/Xilinx/2026.1/Vivado/settings64.sh && set -u &&
+  ( cd "$CODEC" && set +u && . "${XILINX_VIVADO:-/tools/Xilinx/2026.1/Vivado}/settings64.sh" && set -u &&
     vivado -mode batch -nolog -nojournal -source tools/build_bitstream.tcl argus_neural_codec.xpr ) \
     > "$DOCS/hwtest-$STAMP-vivado.log" 2>&1 \
     || fail "gateware build failed (timing or synthesis); see $DOCS/hwtest-$STAMP-vivado.log"
