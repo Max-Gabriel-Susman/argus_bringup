@@ -180,18 +180,6 @@ these repositories carries its verdict block in the message.
 - There is no feedback path from `/cmd_vel` to the board; the loop is open
   by design at this version.
 
-## History
-
-Built in four days of sessions in September 2026. The last two days ran as
-an autonomous development loop (Claude Code, driven by a per-repo `CLAUDE.md`
-work list) under hardware-in-the-loop verification: the loop could build the
-gateware and firmware headlessly, program the board, run the stack, and read
-its own verdict, and it found and fixed the two lwIP configuration bugs that
-had capped replay throughput, took the receive path from 46 % of real time to
-100 %, and wrote and ran the on-silicon bit-exactness check. Tags across the
-repositories mark the milestones: `acq3-live` (the first live run),
-`replay-realtime`, `codec-bitexact`, `v1.0`.
-
 ## If
 
 - **`console: /dev/ttyUSB1 is not present`** — `ls /dev/ttyUSB*`; pass `console_dev:=`.
