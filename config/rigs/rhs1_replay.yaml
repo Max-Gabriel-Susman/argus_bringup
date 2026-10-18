@@ -1,0 +1,5 @@
+# Chips        : 1 simulated record/stim RHS2116 chip
+# Signal Source: the Indy recording, first 16 channels
+chip_type: rhs2116
+chip_mask: 0b001
+lane_src: [model, off, off]

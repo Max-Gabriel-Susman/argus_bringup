@@ -1,0 +1,5 @@
+# Chips         : 3 simulated record-only RHD2132
+# Signal Source : the Indy recording
+chip_type: rhd2132
+chip_mask: 0b111
+lane_src: [model, model, model]
