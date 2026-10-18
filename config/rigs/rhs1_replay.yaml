@@ -3,3 +3,5 @@
 chip_type: rhs2116
 chip_mask: 0b001
 lane_src: [model, off, off]
+source: replay              # replay | ident | live
+dataset: ~/argus_data/indy_20161005_06_s120_10s.bin
