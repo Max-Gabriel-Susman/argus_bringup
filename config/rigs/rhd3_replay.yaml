@@ -3,3 +3,7 @@
 chip_type: rhd2132
 chip_mask: 0b111
 lane_src: [model, model, model]
+decoder:
+  algorithm: lda
+  model: ~/argus_models/indy_both_m3.5.pkl
+  model_sha256: 9c41...    # optional; pins the exact bundle a shared rig ran
