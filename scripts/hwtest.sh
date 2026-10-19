@@ -12,7 +12,7 @@
 # timeout, its log kept at ~/Documents/hwtest-<stamp>.log. The verdict is
 # the lines that matter, and the exit status is PASS (0) or FAIL (1):
 #
-#   PASS needs: acq id 41435133 with no EXPECTED, tx lines advancing,
+#   PASS needs: acq id 41435134 with no EXPECTED, tx lines advancing,
 #               frames ok= on the host, and no "hold never took effect".
 #   Printed:    the last two stream: lines and the last feat: line, so a
 #               throughput or feature regression is visible even on PASS.

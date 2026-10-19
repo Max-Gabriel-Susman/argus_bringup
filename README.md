@@ -45,7 +45,7 @@ and this overview. The stack is eight repositories; they are listed below.
                                                                    └─► argus_feature (the codec)
                                                                          250 Hz HPF · mean-square EMA
                                                                          3.5σ crossings + power / 50 ms
-                                                                   AXI-Lite: ACQ3 register block
+                                                                   AXI-Lite: ACQ4 register block
                                                            PS: reads the feature bank each bin
  argus_sensors ◄──UDP:5005, frame v3 (594 B)──────────────── argus_net (20 frames/s)
    neural_udp_receiver → /argus/neural_interface_bridge/neural_data
@@ -115,7 +115,7 @@ an argument so the file has nothing machine-specific.
 What healthy looks like:
 
 ```
-[console-2] acq id=41435133
+[console-2] acq id=41435134
 [console-2] acq features: bin 21  ch0 count 0 power 2012  ...  dropped 0
 [console-2] replay ok: [0][0]=8385 [0][5]=8194 ...
 [inference_node-6] model path: ARGUS_MODEL_PATH=.../argus_model.pkl (saved model; features=['counts', 'power'] ...)
@@ -207,7 +207,7 @@ The harness refuses to start if the VPN owns the route, the board is
 absent, or processes from a previous run still hold the ports; builds
 refuse on their own failures (a timing miss, a compile error); the run is
 the launch above under a timeout with its log kept; and the verdict reads
-only what happened after the board's boot banner: `PASS` needs the ACQ3
+only what happened after the board's boot banner: `PASS` needs the ACQ4
 identity, `tx` lines advancing, and the host's frame count climbing. It
 prints the `stream:` and `feat:` lines either way so a throughput or feature
 regression is visible on a passing run. Every hardware-affecting commit in
