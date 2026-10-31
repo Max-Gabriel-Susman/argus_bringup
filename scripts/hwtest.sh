@@ -34,8 +34,9 @@
 #              three console lines after it, and no "panic:" or "fault:"
 #   acq        acq id= without EXPECTED, a feat: line, no "hold never took effect"
 #   net        the board answers at least 8 of 10 pings during the run
-#   telemetry  tx lines advancing, frames ok= climbing on the host, and the
-#              host's crc= and rej= counters at 0
+#   telemetry  tx lines advancing, frames ok= climbing on the host, and none
+#              of the host's reject counters (size, magic, ver, crc) rising
+#              after the banner
 #   replay     replay ok:, then across the last two stream: reports at least
 #              1015 more halves, underruns=0, and rtx=0 to=0 rej=0
 #   bitexact   hw_bitexact.py compare exact on 1450 bins (runs at least 110 s)
@@ -49,7 +50,13 @@
 #
 # Exit status: 0 PASS, 1 FAIL, 2 usage, 3 board busy or on hold, 4 not ready
 # (stale ROS processes, the UDP ports taken, the VPN route, the console
-# missing or held). On 3 and 4 nothing was programmed.
+# missing or held, or taken by another reader during the run). On 3 and 4
+# nothing was judged.
+#
+# pipefail is on, so no check below pipes into a reader that stops early
+# (head -1, grep -q, grep -m1): on a long log the writer dies of SIGPIPE and
+# the check fails although it matched. Checks count matches, or read one
+# line with sed, instead.
 #
 # The only hardware-touching command an unattended loop may run.
 set -uo pipefail
@@ -220,6 +227,15 @@ if at_least bitexact; then
   echo "hwtest-bitexact-rc=$?" >> "$LOG.bitexact"
 fi
 
+# console.sh holds the port exclusively; if something else opened it between
+# the check above and the launch, the launch's console got "busy" and the run
+# has no console to judge.
+if grep -aq 'console: .* is busy' "$LOG"; then
+  echo "hwtest: FAIL  another reader took $CONSOLE_DEV before the launch's console did (not ready; nothing was judged)"
+  echo "hwtest: log $LOG"
+  exit 4
+fi
+
 fi  # not --judge
 
 # --- verdict --------------------------------------------------------------
@@ -248,6 +264,11 @@ feat=$(con | grep '^feat:' | tail -1 || true)
 intent=$(post | grep -a 'intent=' | tail -1 | sed 's/.*\[argus_inference\]: //' || true)
 program_err=$(grep -a -m1 -E 'no JTAG targets|program\.(tcl|sh): missing|Failed to download' "$LOG" || true)
 fnum() { echo "$1" | grep -o 'frames ok=[0-9]*' | grep -o '[0-9]*$'; }
+# One counter from a receiver report: field_of "<line>" crc
+field_of() { printf '%s\n' "$1" | grep -oE "(^| )$2=[0-9]+" | tail -1 | grep -oE '[0-9]+$' || true; }
+# Matches, counted: reads all its input, so pipefail cannot misfire on it.
+count() { grep -ac -- "$1" || true; }
+banner_re='Initializing Argus Safety Controller|argus-fw .* boot'
 
 echo "hwtest: ---- verdict ($LOG) ----"
 [ -n "$STAGE" ]     && echo "hwtest:   stage $STAGE, firmware $(grep -aoE 'argus-fw [^ ]+' "$LOG" | tail -1 || true)"
@@ -280,7 +301,9 @@ if [ -z "$STAGE" ]; then
   frames_check
 else
   # boot
-  if [ -z "$banner_ln" ] || ! post | head -1 | grep -qaE 'Initializing Argus Safety Controller|argus-fw .* boot'; then
+  banner_line=""
+  [ -n "$banner_ln" ] && banner_line=$(sed -n "${banner_ln}p" "$LOG")
+  if ! [[ "$banner_line" =~ $banner_re ]]; then
     echo "hwtest:   no boot banner"; status=1
   fi
   after=$(con | wc -l)
@@ -302,14 +325,21 @@ else
     [ -z "$tx_last" ] || [ "$tx_first" = "$tx_last" ] && { echo "hwtest:   no advancing tx lines"; status=1; }
     frames_check
     # Every frame the host turned away is a firmware fault: a bad CRC or a
-    # malformed packet. Checked when the receiver reports the counters.
-    for field in crc rej; do
-      n=$(echo "$frames" | grep -oE "$field=[0-9]+" | tail -1 | grep -oE '[0-9]+$' || true)
-      [ -n "$n" ] && [ "$n" -ne 0 ] && { echo "hwtest:   host counted $field=$n"; status=1; }
+    # malformed packet. The receiver's counters run from its own start, which
+    # is before programming, so they are counted from its last report at or
+    # before the banner: frames the previous image sent are not this one's.
+    pre=""
+    [ -n "$banner_ln" ] && pre=$(head -n "$banner_ln" "$LOG" | grep -a 'frames ok=' | tail -1 || true)
+    for field in size magic ver crc; do
+      n1=$(field_of "$frames" "$field")
+      [ -z "$n1" ] && continue
+      n0=$(field_of "$pre" "$field")
+      d=$((n1 - ${n0:-0}))
+      [ "$d" -ne 0 ] && { echo "hwtest:   host counted $field=$d after the banner"; status=1; }
     done
   fi
   if at_least replay; then
-    con | grep -qa '^replay ok:' || { echo "hwtest:   no 'replay ok:' line"; status=1; }
+    [ "$(con | count '^replay ok:')" -gt 0 ] || { echo "hwtest:   no 'replay ok:' line"; status=1; }
     halves=$(con | grep -a '^stream: halves=' | tail -2 | grep -oE 'halves=[0-9]+' | grep -oE '[0-9]+' || true)
     if [ "$(echo "$halves" | grep -c .)" -lt 2 ]; then
       echo "hwtest:   fewer than two stream: halves= reports"; status=1
@@ -324,7 +354,7 @@ else
     [ "$errs" != "rtx=0 to=0 rej=0" ] && { echo "hwtest:   replay errors: ${errs:-no counters line}"; status=1; }
   fi
   if at_least bitexact; then
-    grep -a 'bins exact' "$LOG.bitexact" 2>/dev/null | sed 's/^ */hwtest:   /'
+    grep -aE '^ *bins exact|WARNING' "$LOG.bitexact" 2>/dev/null | sed -n '1,4s/^ */hwtest:   /p'
     grep -qx 'hwtest-bitexact-rc=0' "$LOG.bitexact" 2>/dev/null \
       || { echo "hwtest:   not bit-exact (see $LOG.bitexact)"; status=1; }
   fi
