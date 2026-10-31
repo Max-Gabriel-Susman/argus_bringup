@@ -245,15 +245,15 @@ these repositories carries its verdict block in the message.
 
 ## History
 
-Built in four days of sessions in September 2026. The last two days ran as
-an autonomous development loop (Claude Code, driven by a per-repo `CLAUDE.md`
-work list) under hardware-in-the-loop verification: the loop could build the
-gateware and firmware headlessly, program the board, run the stack, and read
-its own verdict, and it found and fixed the two lwIP configuration bugs that
-had capped replay throughput, took the receive path from 46 % of real time to
-100 %, and wrote and ran the on-silicon bit-exactness check. Tags across the
-repositories mark the milestones: `acq3-live` (the first live run),
-`replay-realtime`, `codec-bitexact`, `v1.0`.
+Built in four days of sessions in September 2026. The last two days ran
+under hardware-in-the-loop verification: every change was built headlessly
+(gateware and firmware), programmed onto the board, run through the whole
+stack and judged by `scripts/hwtest.sh` before it was kept. That cycle found
+and fixed the two lwIP configuration bugs that had capped replay throughput,
+took the receive path from 46 % of real time to 100 %, and produced the
+on-silicon bit-exactness check. Tags across the repositories mark the
+milestones: `acq3-live` (the first live run), `replay-realtime`,
+`codec-bitexact`, `v1.0`.
 
 ## If
 

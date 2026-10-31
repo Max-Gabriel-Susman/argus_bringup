@@ -45,7 +45,7 @@
 # runs, so two runs never overlap. A second run waits up to 15 minutes
 # (ARGUS_BOARD_WAIT seconds), then exits 3, BOARD BUSY. A caller holding the
 # lock for a longer session sets ARGUS_BOARD_LOCK_HELD=1. A run started by an
-# unattended loop (ARGUS_LOOP set) exits 3, BOARD ON HOLD, while
+# automated job (ARGUS_LOOP set) exits 3, BOARD ON HOLD, while
 # ~/Documents/.argus-board-hold exists.
 #
 # Exit status: 0 PASS, 1 FAIL, 2 usage, 3 board busy or on hold, 4 not ready
@@ -58,7 +58,7 @@
 # the check fails although it matched. Checks count matches, or read one
 # line with sed, instead.
 #
-# The only hardware-touching command an unattended loop may run.
+# The only hardware-touching command an automated job may run.
 set -uo pipefail
 
 DOCS="$HOME/Documents"
